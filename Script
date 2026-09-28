@@ -1,0 +1,1092 @@
+-- ケロベロスHUB Complete
+-- v1〜v15の全機能を統合
+-- UI: 画像のPoopHub Freeスタイル（Movement / Visual / Camera / Exploit / Kick / Aim / Sky）
+-- 実行環境: Roblox Executor
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local localPlayer = Players.LocalPlayer
+
+-- ============================================================
+-- 通知システム（v11）
+-- ============================================================
+local NotifyGui = Instance.new("ScreenGui")
+NotifyGui.Name = "KeroberosNotify"
+NotifyGui.ResetOnSpawn = false
+NotifyGui.Parent = localPlayer:WaitForChild("PlayerGui")
+
+local NotifyFrame = Instance.new("Frame")
+NotifyFrame.Size = UDim2.new(0, 280, 1, 0)
+NotifyFrame.Position = UDim2.new(1, -290, 0, 0)
+NotifyFrame.BackgroundTransparency = 1
+NotifyFrame.Parent = NotifyGui
+
+local NotifyList = Instance.new("UIListLayout")
+NotifyList.Padding = UDim.new(0, 6)
+NotifyList.SortOrder = Enum.SortOrder.LayoutOrder
+NotifyList.Parent = NotifyFrame
+
+local function createNotify(title, desc, icon, color)
+    local notify = Instance.new("Frame")
+    notify.Size = UDim2.new(1, 0, 0, 55)
+    notify.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+    notify.BorderSizePixel = 0
+    notify.Parent = NotifyFrame
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = notify
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color or Color3.fromRGB(80, 80, 100)
+    stroke.Thickness = 1
+    stroke.Parent = notify
+    local iconLbl = Instance.new("TextLabel")
+    iconLbl.Size = UDim2.new(0, 30, 0, 30)
+    iconLbl.Position = UDim2.new(0, 10, 0.5, -15)
+    iconLbl.BackgroundTransparency = 1
+    iconLbl.Text = icon or "!"
+    iconLbl.TextColor3 = color or Color3.fromRGB(200, 200, 210)
+    iconLbl.Font = Enum.Font.GothamBold
+    iconLbl.TextSize = 18
+    iconLbl.Parent = notify
+    local titleLbl = Instance.new("TextLabel")
+    titleLbl.Size = UDim2.new(1, -50, 0, 20)
+    titleLbl.Position = UDim2.new(0, 45, 0, 8)
+    titleLbl.BackgroundTransparency = 1
+    titleLbl.Text = title
+    titleLbl.TextColor3 = Color3.fromRGB(220, 220, 230)
+    titleLbl.Font = Enum.Font.GothamBold
+    titleLbl.TextSize = 12
+    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    titleLbl.Parent = notify
+    local descLbl = Instance.new("TextLabel")
+    descLbl.Size = UDim2.new(1, -50, 0, 15)
+    descLbl.Position = UDim2.new(0, 45, 0, 28)
+    descLbl.BackgroundTransparency = 1
+    descLbl.Text = desc
+    descLbl.TextColor3 = Color3.fromRGB(150, 150, 170)
+    descLbl.Font = Enum.Font.Gotham
+    descLbl.TextSize = 10
+    descLbl.TextXAlignment = Enum.TextXAlignment.Left
+    descLbl.Parent = notify
+    local barBg = Instance.new("Frame")
+    barBg.Size = UDim2.new(1, -20, 0, 4)
+    barBg.Position = UDim2.new(0, 10, 1, -8)
+    barBg.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    barBg.BorderSizePixel = 0
+    barBg.Parent = notify
+    local barCorner = Instance.new("UICorner")
+    barCorner.CornerRadius = UDim.new(1, 0)
+    barCorner.Parent = barBg
+    local barFill = Instance.new("Frame")
+    barFill.Size = UDim2.new(1, 0, 1, 0)
+    barFill.BackgroundColor3 = color or Color3.fromRGB(100, 100, 200)
+    barFill.BorderSizePixel = 0
+    barFill.Parent = barBg
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(1, 0)
+    fillCorner.Parent = barFill
+    local tween = game:GetService("TweenService"):Create(barFill, TweenInfo.new(3, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 1, 0)})
+    tween:Play()
+    task.delay(3.5, function()
+        notify:Destroy()
+    end)
+    return notify
+end
+
+-- ============================================================
+-- UI 構築（PoopHub Free スタイル）
+-- ============================================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "KeroberosHUB"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 720, 0, 480)
+Main.Position = UDim2.new(0.5, -360, 0.5, -240)
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = true
+Main.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = Main
+
+-- トップバー
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+TopBar.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = Main
+
+local TopCorner = Instance.new("UICorner")
+TopCorner.CornerRadius = UDim.new(0, 8)
+TopCorner.Parent = TopBar
+
+local TopTitle = Instance.new("TextLabel")
+TopTitle.Size = UDim2.new(0, 200, 1, 0)
+TopTitle.Position = UDim2.new(0, 10, 0, 0)
+TopTitle.BackgroundTransparency = 1
+TopTitle.Text = "PoopHub Free"
+TopTitle.TextColor3 = Color3.fromRGB(200, 200, 210)
+TopTitle.Font = Enum.Font.GothamBold
+TopTitle.TextSize = 14
+TopTitle.TextXAlignment = Enum.TextXAlignment.Left
+TopTitle.Parent = TopBar
+
+local SearchBox = Instance.new("TextBox")
+SearchBox.Size = UDim2.new(0, 150, 0, 22)
+SearchBox.Position = UDim2.new(1, -170, 0.5, -11)
+SearchBox.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+SearchBox.PlaceholderText = "Search..."
+SearchBox.Text = ""
+SearchBox.TextColor3 = Color3.fromRGB(200, 200, 210)
+SearchBox.Font = Enum.Font.Gotham
+SearchBox.TextSize = 11
+SearchBox.BorderSizePixel = 0
+SearchBox.Parent = TopBar
+
+local SearchCorner = Instance.new("UICorner")
+SearchCorner.CornerRadius = UDim.new(0, 4)
+SearchCorner.Parent = SearchBox
+
+-- 左サイドバー
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 40, 1, -35)
+Sidebar.Position = UDim2.new(0, 0, 0, 35)
+Sidebar.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = Main
+
+local SidebarCorner = Instance.new("UICorner")
+SidebarCorner.CornerRadius = UDim.new(0, 8)
+SidebarCorner.Parent = Sidebar
+
+-- コンテンツエリア
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1, -50, 1, -45)
+Content.Position = UDim2.new(0, 45, 0, 40)
+Content.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+Content.BorderSizePixel = 0
+Content.Parent = Main
+
+local ContentCorner = Instance.new("UICorner")
+ContentCorner.CornerRadius = UDim.new(0, 6)
+ContentCorner.Parent = Content
+
+-- ステータスバー
+local StatusBar = Instance.new("TextLabel")
+StatusBar.Size = UDim2.new(1, -20, 0, 20)
+StatusBar.Position = UDim2.new(0, 10, 1, -25)
+StatusBar.BackgroundTransparency = 1
+StatusBar.Text = "> STATUS: 接続完了"
+StatusBar.TextColor3 = Color3.fromRGB(0, 220, 100)
+StatusBar.Font = Enum.Font.Code
+StatusBar.TextSize = 11
+StatusBar.TextXAlignment = Enum.TextXAlignment.Left
+StatusBar.Parent = Main
+
+-- 実行中機能パネル
+local ActiveFrame = Instance.new("Frame")
+ActiveFrame.Size = UDim2.new(0, 200, 0, 220)
+ActiveFrame.Position = UDim2.new(1, -210, 0, 60)
+ActiveFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+ActiveFrame.BackgroundTransparency = 0.2
+ActiveFrame.BorderSizePixel = 0
+ActiveFrame.Parent = ScreenGui
+
+local ActiveCorner = Instance.new("UICorner")
+ActiveCorner.CornerRadius = UDim.new(0, 8)
+ActiveCorner.Parent = ActiveFrame
+
+local ActiveStroke = Instance.new("UIStroke")
+ActiveStroke.Color = Color3.fromRGB(80, 80, 100)
+ActiveStroke.Thickness = 1
+ActiveStroke.Parent = ActiveFrame
+
+local ActiveTitle = Instance.new("TextLabel")
+ActiveTitle.Size = UDim2.new(1, -10, 0, 25)
+ActiveTitle.Position = UDim2.new(0, 5, 0, 5)
+ActiveTitle.BackgroundTransparency = 1
+ActiveTitle.Text = "実行中の機能"
+ActiveTitle.TextColor3 = Color3.fromRGB(220, 220, 230)
+ActiveTitle.Font = Enum.Font.GothamBold
+ActiveTitle.TextSize = 12
+ActiveTitle.TextXAlignment = Enum.TextXAlignment.Left
+ActiveTitle.Parent = ActiveFrame
+
+local ActiveList = Instance.new("Frame")
+ActiveList.Size = UDim2.new(1, -10, 1, -35)
+ActiveList.Position = UDim2.new(0, 5, 0, 30)
+ActiveList.BackgroundTransparency = 1
+ActiveList.Parent = ActiveFrame
+
+local ActiveLayout = Instance.new("UIListLayout")
+ActiveLayout.Padding = UDim.new(0, 3)
+ActiveLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ActiveLayout.Parent = ActiveList
+
+local activeFeatures = {}
+local function updateActiveList()
+    for _, child in pairs(ActiveList:GetChildren()) do
+        if child:IsA("TextLabel") then child:Destroy() end
+    end
+    for i, feature in pairs(activeFeatures) do
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, 0, 0, 18)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = "● " .. feature
+        lbl.TextColor3 = Color3.fromRGB(0, 220, 100)
+        lbl.Font = Enum.Font.Gotham
+        lbl.TextSize = 10
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.LayoutOrder = i
+        lbl.Parent = ActiveList
+    end
+end
+local function setActive(feature, state)
+    if state then
+        table.insert(activeFeatures, feature)
+    else
+        for i, f in pairs(activeFeatures) do
+            if f == feature then table.remove(activeFeatures, i) break end
+        end
+    end
+    updateActiveList()
+end
+
+-- ============================================================
+-- UI 部品生成
+-- ============================================================
+local function createCategory(parent, name, yPos)
+    local cat = Instance.new("Frame")
+    cat.Size = UDim2.new(1, -10, 0, 30)
+    cat.Position = UDim2.new(0, 5, 0, yPos)
+    cat.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+    cat.BorderSizePixel = 0
+    cat.Parent = parent
+    local catCorner = Instance.new("UICorner")
+    catCorner.CornerRadius = UDim.new(0, 4)
+    catCorner.Parent = cat
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -30, 1, 0)
+    lbl.Position = UDim2.new(0, 10, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = name
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = cat
+    local arrow = Instance.new("TextLabel")
+    arrow.Size = UDim2.new(0, 20, 1, 0)
+    arrow.Position = UDim2.new(1, -25, 0, 0)
+    arrow.BackgroundTransparency = 1
+    arrow.Text = "▼"
+    arrow.TextColor3 = Color3.fromRGB(150, 150, 170)
+    arrow.Font = Enum.Font.Gotham
+    arrow.TextSize = 10
+    arrow.Parent = cat
+    return cat
+end
+
+local function createToggle(parent, text, yPos, callback)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, -10, 0, 28)
+    row.Position = UDim2.new(0, 5, 0, yPos)
+    row.BackgroundTransparency = 1
+    row.Parent = parent
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0.7, 0, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(200, 200, 210)
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = row
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(0, 35, 0, 18)
+    toggle.Position = UDim2.new(1, -40, 0.5, -9)
+    toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    toggle.Text = ""
+    toggle.BorderSizePixel = 0
+    toggle.Parent = row
+    local tCorner = Instance.new("UICorner")
+    tCorner.CornerRadius = UDim.new(1, 0)
+    tCorner.Parent = toggle
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 14, 0, 14)
+    knob.Position = UDim2.new(0, 2, 0.5, -7)
+    knob.BackgroundColor3 = Color3.fromRGB(220, 220, 230)
+    knob.BorderSizePixel = 0
+    knob.Parent = toggle
+    local kCorner = Instance.new("UICorner")
+    kCorner.CornerRadius = UDim.new(1, 0)
+    kCorner.Parent = knob
+    local state = false
+    toggle.MouseButton1Click:Connect(function()
+        state = not state
+        if state then
+            toggle.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+            knob.Position = UDim2.new(1, -16, 0.5, -7)
+        else
+            toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+            knob.Position = UDim2.new(0, 2, 0.5, -7)
+        end
+        setActive(text, state)
+        if callback then callback(state) end
+    end)
+    return toggle, row
+end
+
+local function createSlider(parent, text, yPos, min, max, default, callback)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, -10, 0, 45)
+    row.Position = UDim2.new(0, 5, 0, yPos)
+    row.BackgroundTransparency = 1
+    row.Parent = parent
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 0, 15)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(200, 200, 210)
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 11
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = row
+    local valueLbl = Instance.new("TextLabel")
+    valueLbl.Size = UDim2.new(1, 0, 0, 15)
+    valueLbl.BackgroundTransparency = 1
+    valueLbl.Text = tostring(default) .. "/" .. tostring(max)
+    valueLbl.TextColor3 = Color3.fromRGB(150, 150, 170)
+    valueLbl.Font = Enum.Font.Gotham
+    valueLbl.TextSize = 10
+    valueLbl.TextXAlignment = Enum.TextXAlignment.Right
+    valueLbl.Parent = row
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(1, 0, 0, 8)
+    bar.Position = UDim2.new(0, 0, 0, 25)
+    bar.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    bar.BorderSizePixel = 0
+    bar.Parent = row
+    local barCorner = Instance.new("UICorner")
+    barCorner.CornerRadius = UDim.new(1, 0)
+    barCorner.Parent = bar
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(100, 100, 200)
+    fill.BorderSizePixel = 0
+    fill.Parent = bar
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(1, 0)
+    fillCorner.Parent = fill
+    local dragging = false
+    local function updateValue(x)
+        local relX = math.clamp((x - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+        local val = math.floor(min + (max - min) * relX)
+        fill.Size = UDim2.new(relX, 0, 1, 0)
+        valueLbl.Text = tostring(val) .. "/" .. tostring(max)
+        if callback then callback(val) end
+    end
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateValue(input.Position.X)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateValue(input.Position.X)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    return bar, row
+end
+
+local function createTabFrame(name)
+    local frame = Instance.new("ScrollingFrame")
+    frame.Name = name
+    frame.Size = UDim2.new(1, -10, 1, -10)
+    frame.Position = UDim2.new(0, 5, 0, 5)
+    frame.BackgroundTransparency = 1
+    frame.BorderSizePixel = 0
+    frame.ScrollBarThickness = 4
+    frame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
+    frame.CanvasSize = UDim2.new(0, 0, 0, 1500)
+    frame.Visible = false
+    frame.Parent = Content
+    return frame
+end
+
+-- タブ生成
+local movementTab = createTabFrame("Movement")
+local visualTab = createTabFrame("Visual")
+local cameraTab = createTabFrame("Camera")
+local exploitTab = createTabFrame("Exploit")
+local kickTab = createTabFrame("Kick")
+local aimTab = createTabFrame("Aim")
+local skyTab = createTabFrame("Sky")
+
+local function showTab(name)
+    for _, frame in pairs(Content:GetChildren()) do
+        if frame:IsA("ScrollingFrame") then
+            frame.Visible = (frame.Name == name)
+        end
+    end
+end
+
+-- ============================================================
+-- Movement タブ（v8）
+-- ============================================================
+createCategory(movementTab, "Movement", 0)
+createToggle(movementTab, "Enable Custom WalkSpeed", 35, function(state)
+    local char = localPlayer.Character
+    if char then local hum = char:FindFirstChildOfClass("Humanoid") if hum then hum.WalkSpeed = state and 100 or 16 end end
+end)
+createSlider(movementTab, "WalkSpeed", 65, 0, 200, 100, function(val)
+    local char = localPlayer.Character
+    if char then local hum = char:FindFirstChildOfClass("Humanoid") if hum then hum.WalkSpeed = val end end
+end)
+createToggle(movementTab, "Enable Custom JumpPower", 115, function(state)
+    local char = localPlayer.Character
+    if char then local hum = char:FindFirstChildOfClass("Humanoid") if hum then hum.UseJumpPower = true hum.JumpPower = 100 end end
+end)
+createSlider(movementTab, "JumpPower", 145, 0, 500, 100, function(val)
+    local char = localPlayer.Character
+    if char then local hum = char:FindFirstChildOfClass("Humanoid") if hum then hum.UseJumpPower = true hum.JumpPower = val end end
+end)
+createToggle(movementTab, "Infinite Jump", 195, function(state)
+    if state then
+        UserInputService.JumpRequest:Connect(function()
+            local char = localPlayer.Character
+            if char then local hum = char:FindFirstChildOfClass("Humanoid") if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end end
+        end)
+    end
+end)
+createCategory(movementTab, "Look Glitch", 230)
+createToggle(movementTab, "OMG HEAD!!", 265, function(state) end)
+createToggle(movementTab, "OMG BODY", 295, function(state) end)
+
+-- ============================================================
+-- Visual Effects タブ（v8）
+-- ============================================================
+createCategory(visualTab, "Visual Effects (Halo & Aura)", 0)
+createToggle(visualTab, "Enable Halo", 35, function(state)
+    local char = localPlayer.Character
+    if state then
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local halo = Instance.new("Part")
+                halo.Shape = Enum.PartType.Ball
+                halo.Size = Vector3.new(3, 0.2, 3)
+                halo.Material = Enum.Material.Neon
+                halo.Color = Color3.fromRGB(255, 215, 0)
+                halo.Anchored = false
+                halo.CanCollide = false
+                halo.Name = "KeroberosHalo"
+                halo.Parent = char
+                local weld = Instance.new("WeldConstraint")
+                weld.Part0 = halo
+                weld.Part1 = hrp
+                weld.Parent = halo
+                halo.CFrame = hrp.CFrame * CFrame.new(0, 3, 0)
+            end
+        end
+    else
+        if char then local halo = char:FindFirstChild("KeroberosHalo") if halo then halo:Destroy() end end
+    end
+end)
+createSlider(visualTab, "Halo Particle Rate", 65, 0, 50, 7, function(val) end)
+createSlider(visualTab, "Halo Brightness", 115, 0, 10, 2, function(val) end)
+createSlider(visualTab, "Halo Height (Y)", 165, 0, 5, 1.5, function(val) end)
+createSlider(visualTab, "Halo Side (X)", 215, 0, 3, 0, function(val) end)
+
+createCategory(visualTab, "Visual Effects (Wings & Trail)", 260)
+createToggle(visualTab, "Enable Angel Wings", 295, function(state)
+    local char = localPlayer.Character
+    if state then
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local wing = Instance.new("Part")
+                wing.Size = Vector3.new(2, 0.2, 3)
+                wing.Material = Enum.Material.Neon
+                wing.Color = Color3.fromRGB(255, 255, 255)
+                wing.Anchored = false
+                wing.CanCollide = false
+                wing.Name = "KeroberosWing"
+                wing.Parent = char
+                local weld = Instance.new("WeldConstraint")
+                weld.Part0 = wing
+                weld.Part1 = hrp
+                weld.Parent = wing
+                wing.CFrame = hrp.CFrame * CFrame.new(0, 1, 1)
+            end
+        end
+    else
+        if char then local wing = char:FindFirstChild("KeroberosWing") if wing then wing:Destroy() end end
+    end
+end)
+createSlider(visualTab, "Wings Particle Rate", 325, 0, 30, 4, function(val) end)
+createSlider(visualTab, "Wings Brightness", 375, 0, 5, 1, function(val) end)
+createSlider(visualTab, "Wings Height Offset (Y)", 425, 0, 5, 0, function(val) end)
+createSlider(visualTab, "Wings Side Offset (X)", 475, 0, 3, 0, function(val) end)
+createSlider(visualTab, "Wings Spread", 525, 0, 3, 1, function(val) end)
+createToggle(visualTab, "Enable Trail", 575, function(state)
+    local char = localPlayer.Character
+    if state then
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local a0 = Instance.new("Attachment")
+                a0.Position = Vector3.new(0, 1, 0)
+                a0.Parent = hrp
+                local a1 = Instance.new("Attachment")
+                a1.Position = Vector3.new(0, -1, 0)
+                a1.Parent = hrp
+                local trail = Instance.new("Trail")
+                trail.Attachment0 = a0
+                trail.Attachment1 = a1
+                trail.Lifetime = 1
+                trail.Color = ColorSequence.new(Color3.fromRGB(0, 255, 100))
+                trail.Parent = hrp
+            end
+        end
+    else
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then local trail = hrp:FindFirstChildOfClass("Trail") if trail then trail:Destroy() end end
+        end
+    end
+end)
+
+-- ============================================================
+-- Camera / Spin タブ（v8, v10）
+-- ============================================================
+createCategory(cameraTab, "Camera / Spin", 0)
+createSlider(cameraTab, "FOV", 35, 0, 120, 70, function(val)
+    local cam = workspace.CurrentCamera
+    if cam then cam.FieldOfView = val end
+end)
+createToggle(cameraTab, "Force Third Person", 85, function(state)
+    if state then
+        localPlayer.CameraMode = Enum.CameraMode.Classic
+        localPlayer.CameraMaxZoomDistance = 12
+        localPlayer.CameraMinZoomDistance = 0.5
+        local camera = workspace.CurrentCamera
+        camera.CameraType = Enum.CameraType.Custom
+        RunService.RenderStepped:Connect(function()
+            if localPlayer.CameraMode ~= Enum.CameraMode.Classic then
+                localPlayer.CameraMode = Enum.CameraMode.Classic
+            end
+            if camera.CameraType ~= Enum.CameraType.Custom then
+                camera.CameraType = Enum.CameraType.Custom
+            end
+        end)
+    else
+        localPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+    end
+end)
+createSlider(cameraTab, "Third Person Distance", 115, 1, 20, 12, function(val)
+    localPlayer.CameraMaxZoomDistance = val
+end)
+createCategory(cameraTab, "Spin", 165)
+local spinEnabled = false
+createToggle(cameraTab, "Enable Spin", 200, function(state) spinEnabled = state end)
+createSlider(cameraTab, "Spin Speed", 230, 0, 20, 5, function(val)
+    if spinEnabled then
+        local cam = workspace.CurrentCamera
+        if cam then
+            RunService.RenderStepped:Connect(function()
+                cam.CFrame = cam.CFrame * CFrame.Angles(0, math.rad(val), 0)
+            end)
+        end
+    end
+end)
+
+-- ============================================================
+-- Exploit タブ（v9, v11, v13, v15）
+-- ============================================================
+createCategory(exploitTab, "Grab / Anti Grab", 0)
+local antiGrabEnabled = false
+createToggle(exploitTab, "Anti Grab (家の中でも掴める)", 35, function(state)
+    antiGrabEnabled = state
+    if state then
+        RunService.Heartbeat:Connect(function()
+            if not antiGrabEnabled then return end
+            local char = localPlayer.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local rayParams = RaycastParams.new()
+                rayParams.FilterType = Enum.RaycastFilterType.Exclude
+                rayParams.FilterDescendantsInstances = {char}
+                local rayResult = workspace:Raycast(hrp.Position, Vector3.new(0, 50, 0), rayParams)
+                if rayResult and rayResult.Instance then
+                    hrp.CFrame = hrp.CFrame * CFrame.new(0, 0.01, 0)
+                end
+            end
+        end)
+    end
+end)
+createToggle(exploitTab, "Force Grab (強制掴み)", 70, function(state) end)
+createToggle(exploitTab, "Anti Grab Bypass", 105, function(state) end)
+
+-- カオスモード（v13）
+createCategory(exploitTab, "Chaos Mode", 140)
+local function createChaosEffect(centerPos)
+    local vortex = Instance.new("Part")
+    vortex.Shape = Enum.PartType.Ball
+    vortex.Size = Vector3.new(30, 30, 30)
+    vortex.Material = Enum.Material.Neon
+    vortex.Color = Color3.fromRGB(50, 100, 255)
+    vortex.Transparency = 0.5
+    vortex.Anchored = true
+    vortex.CanCollide = false
+    vortex.Position = centerPos + Vector3.new(0, 30, 0)
+    vortex.Parent = workspace
+    local vortexSpin = RunService.Heartbeat:Connect(function(dt)
+        vortex.CFrame = vortex.CFrame * CFrame.Angles(0, dt * 3, 0)
+    end)
+    local pillar = Instance.new("Part")
+    pillar.Size = Vector3.new(5, 100, 5)
+    pillar.Material = Enum.Material.Neon
+    pillar.Color = Color3.fromRGB(150, 200, 255)
+    pillar.Transparency = 0.3
+    pillar.Anchored = true
+    pillar.CanCollide = false
+    pillar.Position = centerPos + Vector3.new(0, 50, 0)
+    pillar.Parent = workspace
+    local ring = Instance.new("Part")
+    ring.Shape = Enum.PartType.Cylinder
+    ring.Size = Vector3.new(1, 40, 40)
+    ring.Material = Enum.Material.Neon
+    ring.Color = Color3.fromRGB(200, 220, 255)
+    ring.Transparency = 0.4
+    ring.Anchored = true
+    ring.CanCollide = false
+    ring.CFrame = CFrame.new(centerPos + Vector3.new(0, 5, 0)) * CFrame.Angles(0, 0, math.rad(90))
+    ring.Parent = workspace
+    local emitter = Instance.new("ParticleEmitter")
+    emitter.Texture = "rbxassetid://243098098"
+    emitter.Rate = 800
+    emitter.Speed = NumberRange.new(20, 60)
+    emitter.Lifetime = NumberRange.new(1, 3)
+    emitter.Color = ColorSequence.new(Color3.fromRGB(100, 180, 255))
+    emitter.Size = NumberSequence.new(2)
+    emitter.Transparency = NumberSequence.new(0.3)
+    emitter.Parent = vortex
+    for i = 1, 20 do
+        local line = Instance.new("Part")
+        line.Size = Vector3.new(0.2, 0.2, 60)
+        line.Material = Enum.Material.Neon
+        line.Color = Color3.fromRGB(255, 255, 255)
+        line.Anchored = true
+        line.CanCollide = false
+        line.CFrame = CFrame.new(centerPos + Vector3.new(0, 30, 0)) * CFrame.Angles(math.random(-180,180), math.random(-180,180), math.random(-180,180))
+        line.Parent = workspace
+        game:GetService("Debris"):AddItem(line, 3)
+    end
+    local shockwave = Instance.new("Part")
+    shockwave.Shape = Enum.PartType.Cylinder
+    shockwave.Size = Vector3.new(1, 10, 10)
+    shockwave.Material = Enum.Material.Neon
+    shockwave.Color = Color3.fromRGB(100, 150, 255)
+    shockwave.Transparency = 0.7
+    shockwave.Anchored = true
+    shockwave.CanCollide = false
+    shockwave.CFrame = CFrame.new(centerPos) * CFrame.Angles(0, 0, math.rad(90))
+    shockwave.Parent = workspace
+    local tween = game:GetService("TweenService"):Create(shockwave, TweenInfo.new(2), {Size = Vector3.new(1, 200, 200), Transparency = 1})
+    tween:Play()
+    task.delay(5, function()
+        vortexSpin:Disconnect()
+        vortex:Destroy()
+        pillar:Destroy()
+        ring:Destroy()
+        shockwave:Destroy()
+    end)
+end
+
+createToggle(exploitTab, "カオスモード発動", 175, function(state)
+    if state then
+        local spawnLocation = workspace:FindFirstChildOfClass("SpawnLocation")
+        local targetPos = spawnLocation and spawnLocation.Position or Vector3.new(0, 50, 0)
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                p.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(math.random(-10,10), 50, math.random(-10,10)))
+            end
+        end
+        task.wait(1)
+        local players = Players:GetPlayers()
+        for i, p in pairs(players) do
+            if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                local angle = (i / #players) * math.pi * 2
+                p.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(math.cos(angle)*30, 50, math.sin(angle)*30))
+            end
+        end
+        task.wait(1)
+        createChaosEffect(targetPos)
+        for i = 1, 1000 do
+            local lagPart = Instance.new("Part")
+            lagPart.Size = Vector3.new(1, 1, 1)
+            lagPart.Position = targetPos + Vector3.new(math.random(-50,50), math.random(-50,50), math.random(-50,50))
+            lagPart.Anchored = false
+            lagPart.CanCollide = false
+            lagPart.Transparency = 1
+            lagPart.Parent = workspace
+            game:GetService("Debris"):AddItem(lagPart, 5)
+        end
+        task.wait(3)
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                p.Character.HumanoidRootPart.CFrame = CFrame.new(0, -500, 0)
+            end
+        end
+    end
+end)
+
+-- 通知関連
+createCategory(exploitTab, "Notify", 220)
+createToggle(exploitTab, "Player Kick Notify", 255, function(state)
+    if state then
+        Players.PlayerRemoving:Connect(function(player)
+            createNotify("退出しました", player.Name .. " (@" .. player.Name .. ")", "!", Color3.fromRGB(255, 80, 80))
+        end)
+    end
+end)
+createToggle(exploitTab, "Active Feature Display", 290, function(state)
+    ActiveFrame.Visible = state
+end)
+
+-- ============================================================
+-- Kick タブ（v12, v14）
+-- ============================================================
+createCategory(kickTab, "Drift Kick & Line Lag", 0)
+local kickTargetName = ""
+local kickBox = Instance.new("TextBox")
+kickBox.Size = UDim2.new(1, -10, 0, 30)
+kickBox.Position = UDim2.new(0, 5, 0, 35)
+kickBox.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+kickBox.PlaceholderText = "プレイヤー名を入力..."
+kickBox.Text = ""
+kickBox.TextColor3 = Color3.fromRGB(220, 220, 230)
+kickBox.Font = Enum.Font.Gotham
+kickBox.TextSize = 12
+kickBox.BorderSizePixel = 0
+kickBox.Parent = kickTab
+local kickBoxCorner = Instance.new("UICorner")
+kickBoxCorner.CornerRadius = UDim.new(0, 6)
+kickBoxCorner.Parent = kickBox
+kickBox:GetPropertyChangedSignal("Text"):Connect(function() kickTargetName = kickBox.Text end)
+
+local driftBtn = Instance.new("TextButton")
+driftBtn.Size = UDim2.new(1, -10, 0, 35)
+driftBtn.Position = UDim2.new(0, 5, 0, 75)
+driftBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+driftBtn.Text = "Drift Kick & Line Lag"
+driftBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+driftBtn.Font = Enum.Font.GothamBold
+driftBtn.TextSize = 12
+driftBtn.BorderSizePixel = 0
+driftBtn.Parent = kickTab
+local driftCorner = Instance.new("UICorner")
+driftCorner.CornerRadius = UDim.new(0, 6)
+driftCorner.Parent = driftBtn
+driftBtn.MouseButton1Click:Connect(function()
+    if kickTargetName == "" then return end
+    local target = Players:FindFirstChild(kickTargetName)
+    if not target or not target.Character then return end
+    local tHRP = target.Character:FindFirstChild("HumanoidRootPart")
+    local lChar = localPlayer.Character
+    if not lChar then return end
+    local lHRP = lChar:FindFirstChild("HumanoidRootPart")
+    if not tHRP or not lHRP then return end
+    lHRP.CFrame = tHRP.CFrame * CFrame.new(0, 0, 3)
+    local originPos = lHRP.Position
+    local targetPos = tHRP.Position
+    local distance = (targetPos - originPos).Magnitude
+    local direction = (targetPos - originPos).Unit
+    local linePart = Instance.new("Part")
+    linePart.Size = Vector3.new(0.2, 0.2, distance)
+    linePart.Material = Enum.Material.Neon
+    linePart.Color = Color3.fromRGB(255, 255, 255)
+    linePart.Anchored = true
+    linePart.CanCollide = false
+    linePart.CFrame = CFrame.new(originPos + direction * (distance / 2), targetPos)
+    linePart.Parent = workspace
+    for i = 1, 8 do
+        local beam = Instance.new("Part")
+        beam.Size = Vector3.new(0.1, 0.1, 15)
+        beam.Material = Enum.Material.Neon
+        beam.Color = Color3.fromRGB(255, 255, 255)
+        beam.Anchored = true
+        beam.CanCollide = false
+        beam.CFrame = CFrame.new(targetPos) * CFrame.Angles(0, math.rad(i * 45), 0)
+        beam.Parent = workspace
+        game:GetService("Debris"):AddItem(beam, 1)
+    end
+    for i = 1, 1000 do
+        local lag = Instance.new("Part")
+        lag.Size = Vector3.new(0.1, 0.1, 0.1)
+        lag.Anchored = false
+        lag.CanCollide = false
+        lag.Transparency = 1
+        lag.Position = targetPos + Vector3.new(math.random(-10,10), math.random(-10,10), math.random(-10,10))
+        lag.Parent = workspace
+        game:GetService("Debris"):AddItem(lag, 2)
+    end
+    task.wait(0.5)
+    tHRP.CFrame = CFrame.new(0, -500, 0)
+    task.wait(1)
+    local groundRay = RaycastParams.new()
+    groundRay.FilterType = Enum.RaycastFilterType.Exclude
+    groundRay.FilterDescendantsInstances = {lChar}
+    local result = workspace:Raycast(lHRP.Position, Vector3.new(0, -100, 0), groundRay)
+    if result then lHRP.CFrame = CFrame.new(result.Position + Vector3.new(0, 3, 0)) end
+    task.wait(1)
+    linePart:Destroy()
+end)
+
+-- Ground Kick（v14）
+createCategory(kickTab, "Ground Kick", 120)
+local groundTargetName = ""
+local groundBox = Instance.new("TextBox")
+groundBox.Size = UDim2.new(1, -10, 0, 30)
+groundBox.Position = UDim2.new(0, 5, 0, 155)
+groundBox.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+groundBox.PlaceholderText = "プレイヤー名を入力..."
+groundBox.Text = ""
+groundBox.TextColor3 = Color3.fromRGB(220, 220, 230)
+groundBox.Font = Enum.Font.Gotham
+groundBox.TextSize = 12
+groundBox.BorderSizePixel = 0
+groundBox.Parent = kickTab
+local gBoxCorner = Instance.new("UICorner")
+gBoxCorner.CornerRadius = UDim.new(0, 6)
+gBoxCorner.Parent = groundBox
+groundBox:GetPropertyChangedSignal("Text"):Connect(function() groundTargetName = groundBox.Text end)
+
+local groundBtn = Instance.new("TextButton")
+groundBtn.Size = UDim2.new(1, -10, 0, 35)
+groundBtn.Position = UDim2.new(0, 5, 0, 195)
+groundBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+groundBtn.Text = "Ground Kick (ラグ利用)"
+groundBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+groundBtn.Font = Enum.Font.GothamBold
+groundBtn.TextSize = 12
+groundBtn.BorderSizePixel = 0
+groundBtn.Parent = kickTab
+local gBtnCorner = Instance.new("UICorner")
+gBtnCorner.CornerRadius = UDim.new(0, 6)
+gBtnCorner.Parent = groundBtn
+groundBtn.MouseButton1Click:Connect(function()
+    if groundTargetName == "" then return end
+    local target = Players:FindFirstChild(groundTargetName)
+    if not target or not target.Character then return end
+    local tHRP = target.Character:FindFirstChild("HumanoidRootPart")
+    local lChar = localPlayer.Character
+    if not lChar then return end
+    local lHRP = lChar:FindFirstChild("HumanoidRootPart")
+    if not tHRP or not lHRP then return end
+    local groundRay = RaycastParams.new()
+    groundRay.FilterType = Enum.RaycastFilterType.Exclude
+    groundRay.FilterDescendantsInstances = {lChar}
+    local result = workspace:Raycast(lHRP.Position, Vector3.new(0, -100, 0), groundRay)
+    if result then lHRP.CFrame = CFrame.new(result.Position - Vector3.new(0, 2, 0)) end
+    task.wait(0.1)
+    local tGround = workspace:Raycast(tHRP.Position, Vector3.new(0, -100, 0), groundRay)
+    if tGround then lHRP.CFrame = CFrame.new(tGround.Position + Vector3.new(0, -1, 0)) end
+    for i = 1, 800 do
+        local lag = Instance result.new("Part")
+        lag.Size = Vector3.new(0.5 then, 0.5, 0.5)
+        lag.An lchored = false
+        lag.CanCollide =HR true
+        lag.Transparency =P 1
+        lag.Position = tHRP.Position + Vector3.new(math.random(-5,5), math.random(-5,5), math.random(-5,5))
+        lag.Parent = workspace
+        game:GetService("Debris"):AddItem(lag, 2)
+    end
+    task.wait(0.5)
+    tHRP.CFrame = CFrame.new(tHRP.Position - Vector3.new(0, 100, 0))
+    task.wait(0.5)
+    if.CFrame = CFrame.new(result.Position + Vector3.new(0, 3, 0)) end
+end)
+
+-- ============================================================
+-- Aim タブ（v14）
+-- ============================================================
+createCategory(aimTab, "Aim Assist", 0)
+local silentAimEnabled = false
+local autoAimEnabled = false
+
+local function getClosestPlayer()
+    local closest, minDist = nil, math.huge
+    local char = localPlayer.Character
+    if not char then return nil end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= localPlayer and p.Character then
+            local tHRP = p.Character:FindFirstChild("HumanoidRootPart")
+            if tHRP then
+                local dist = (tHRP.Position - hrp.Position).Magnitude
+                if dist < minDist then minDist = dist closest = p end
+            end
+        end
+    end
+    return closest
+end
+
+RunService.RenderStepped:Connect(function()
+    if silentAimEnabled or autoAimEnabled then
+        local target = getClosestPlayer()
+        if target and target.Character then
+            local tHRP = target.Character:FindFirstChild("HumanoidRootPart")
+            if tHRP then
+                local cam = workspace.CurrentCamera
+                cam.CFrame = CFrame.new(cam.CFrame.Position, tHRP.Position)
+            end
+        end
+    end
+end)
+
+createToggle(aimTab, "Silent Aim", 35, function(state) silentAimEnabled = state end)
+createToggle(aimTab, "Auto Aim", 70, function(state) autoAimEnabled = state end)
+
+-- ============================================================
+-- Sky タブ（v15）
+-- ============================================================
+local function applyFantasySky()
+    for _, obj in pairs(Lighting:GetChildren()) do
+        if obj:IsA("Sky") then obj:Destroy() end
+    end
+    local sky = Instance.new("Sky")
+    sky.SkyboxBk = "rbxassetid://159454299"
+    sky.SkyboxDn = "rbxassetid://159454296"
+    sky.SkyboxFt = "rbxassetid://159454293"
+    sky.SkyboxLf = "rbxassetid://159454286"
+    sky.SkyboxRt = "rbxassetid://159454300"
+    sky.SkyboxUp = "rbxassetid://159454288"
+    sky.StarCount = 5000
+    sky.Parent = Lighting
+    Lighting.Ambient = Color3.fromRGB(70, 70, 120)
+    Lighting.OutdoorAmbient = Color3.fromRGB(80, 80, 140)
+    Lighting.Brightness = 2
+    Lighting.ClockTime = 0
+    Lighting.FogColor = Color3.fromRGB(100, 100, 180)
+    Lighting.FogStart = 100
+    Lighting.FogEnd = 500
+    local cc = Instance.new("ColorCorrectionEffect")
+    cc.Brightness = 0.1
+    cc.Contrast = 0.2
+    cc.Saturation = 0.3
+    cc.TintColor = Color3.fromRGB(180, 180, 255)
+    cc.Parent = Lighting
+    local bloom = Instance.new("BloomEffect")
+    bloom.Intensity = 1.5
+    bloom.Size = 24
+    bloom.Threshold = 0.8
+    bloom.Parent = Lighting
+    local blur = Instance.new("BlurEffect")
+    blur.Size = 2
+    blur.Parent = Lighting
+    local atmo = Instance.new("Atmosphere")
+    atmo.Density = 0.4
+    atmo.Offset = 0.25
+    atmo.Color = Color3.fromRGB(150, 150, 255)
+    atmo.Decay = Color3.fromRGB(100, 100, 200)
+    atmo.Glare = 0.5
+    atmo.Haze = 2
+    atmo.Parent = Lighting
+end
+
+local function removeFantasySky()
+    for _, obj in pairs(Lighting:GetChildren()) do
+        if obj:IsA("Sky") or obj:IsA("ColorCorrectionEffect") or obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("Atmosphere") then
+            obj:Destroy()
+        end
+    end
+    Lighting.Ambient = Color3.fromRGB(70, 70, 70)
+    Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+    Lighting.Brightness = 2
+    Lighting.ClockTime = 14
+    Lighting.FogColor = Color3.fromRGB(192, 192, 192)
+    Lighting.FogStart = 0
+    Lighting.FogEnd = 100000
+end
+
+createCategory(skyTab, "Background / Sky", 0)
+createToggle(skyTab, "幻想的な空 (Fantasy Sky)", 35, function(state)
+    if state then applyFantasySky() else removeFantasySky() end
+end)
+createToggle(skyTab, "星空 (Starfield)", 70, function(state)
+    local sky = Lighting:FindFirstChildOfClass("Sky")
+    if sky then sky.StarCount = state and 5000 or 0 end
+end)
+
+-- ============================================================
+-- サイドバーアイコン
+-- ============================================================
+local function createSideIcon(text, yPos, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 30, 0, 30)
+    btn.Position = UDim2.new(0, 5, 0, yPos)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 36)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(200, 200, 210)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.BorderSizePixel = 0
+    btn.Parent = Sidebar
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = btn
+    btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60) end)
+    btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(30, 30, 36) end)
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+createSideIcon("M", 10, function() showTab("Movement") end)
+createSideIcon("V", 50, function() showTab("Visual") end)
+createSideIcon("C", 90, function() showTab("Camera") end)
+createSideIcon("E", 130, function() showTab("Exploit") end)
+createSideIcon("K", 170, function() showTab("Kick") end)
+createSideIcon("A", 210, function() showTab("Aim") end)
+createSideIcon("S", 250, function() showTab("Sky") end)
+
+-- 閉じるボタン
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -30, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 14
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Parent = Main
+local cCorner = Instance.new("UICorner")
+cCorner.CornerRadius = UDim.new(0, 4)
+cCorner.Parent = CloseBtn
+CloseBtn.MouseButton1Click:Connect(function() Main.Visible = false end)
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.Z then
+        Main.Visible = not Main.Visible
+    end
+end)
+
+showTab("Movement")
